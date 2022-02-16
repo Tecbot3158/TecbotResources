@@ -16,11 +16,16 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.can.BaseMotorController;
-import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel;
 import edu.wpi.first.wpilibj.*;
+import edu.wpi.first.wpilibj.motorcontrol.Jaguar;
+import edu.wpi.first.wpilibj.motorcontrol.PWMTalonSRX;
+import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;
+import edu.wpi.first.wpilibj.motorcontrol.Spark;
+import edu.wpi.first.wpilibj.motorcontrol.Victor;
 
 /**
  * Creates new TecbotSpeedController and allows a generalized
@@ -28,6 +33,7 @@ import edu.wpi.first.wpilibj.*;
  * motor controllers you can check {@link TypeOfMotor}
  */
 public class TecbotSpeedController {
+
 
     public enum TypeOfMotor {
 
@@ -56,7 +62,7 @@ public class TecbotSpeedController {
 
             case TALON_SRX:
 
-                phoenixMotor = new TalonSRX(port);
+                phoenixMotor = new WPI_TalonSRX(port);
 
                 phoenixMotor.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder, 0, 0);
 
@@ -83,6 +89,7 @@ public class TecbotSpeedController {
             case JAGUAR:
 
                 frcMotor = new Jaguar(port);
+                
 
                 break;
 
@@ -128,13 +135,18 @@ public class TecbotSpeedController {
     public int getEncPosition() {
 
         if (motorToUse == TypeOfMotor.TALON_SRX)
-            return phoenixMotor.getSelectedSensorPosition(0);
-        else if (motorToUse == TypeOfMotor.CAN_SPARK_BRUSHLESS) {
-            return (int) ((CANSparkMax) frcMotor).getEncoder().getPosition();
-        } else
+            return (int) phoenixMotor.getSelectedSensorPosition(0);
+        else
             DriverStation.reportWarning("That is not a Talon SRX nor a Spark Max!", true);
         return 0;
 
+    }
+
+    public double getSparkEncPosition() {
+        if (motorToUse == TypeOfMotor.CAN_SPARK_BRUSHLESS) {
+            return ((CANSparkMax) frcMotor).getEncoder().getPosition();
+        } else
+            return 0;
     }
 
     public void stopMotor() {
@@ -161,20 +173,30 @@ public class TecbotSpeedController {
 
     }
 
-    public TalonSRX getTalonSRX() {
+    public WPI_TalonSRX getTalonSRX() {
         if (motorToUse == TypeOfMotor.TALON_SRX)
-            return (TalonSRX) phoenixMotor;
+            return (WPI_TalonSRX) phoenixMotor;
         return null;
 
     }
 
+    public CANSparkMax getCANSparkMax() {
+        if (motorToUse == TypeOfMotor.CAN_SPARK_BRUSHLESS || motorToUse == TypeOfMotor.CAN_SPARK_BRUSHED) {
+            return (CANSparkMax) frcMotor;
+        }
+        return null;
+    }
+
     /*
-     * WARNING: this will only work with TALON SRX
+     * WARNING: this will only work with TALON SRX and Spark Max
      *
      */
     public void setBrakeMode(boolean doBrake) {
 
-        ((TalonSRX) phoenixMotor).setNeutralMode(doBrake ? NeutralMode.Brake : NeutralMode.Coast);
+        if (phoenixMotor != null)
+            ((WPI_TalonSRX) phoenixMotor).setNeutralMode(doBrake ? NeutralMode.Brake : NeutralMode.Coast);
+        if (frcMotor != null)
+            ((CANSparkMax) frcMotor).setIdleMode(doBrake ? CANSparkMax.IdleMode.kBrake : CANSparkMax.IdleMode.kCoast);
 
     }
 
